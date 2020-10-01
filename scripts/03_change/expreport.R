@@ -24,7 +24,7 @@ for (j in 1:3) {
   
   levels(d_sel$cond) <- gsub("A_mgmtsum", "Group A:\nSummary", levels(d_sel$cond))
   levels(d_sel$cond) <- gsub("B_pressrel", "Group B:\nPress release", levels(d_sel$cond))
-  levels(d_sel$cond) <- gsub("C_keypoints", "Group C:\nBullet points", levels(d_sel$cond))
+  levels(d_sel$cond) <- gsub("C_keypoints", "Group C:\nKey points", levels(d_sel$cond))
   levels(d_sel$cond) <- gsub("D_control", "Group D:\nControl", levels(d_sel$cond))
   
   sel_vs <- names(d_sel)[grepl("rep_", names(d_sel))]
@@ -47,7 +47,7 @@ for (j in 1:3) {
       par(mar=c(4,8,2,2), mgp=c(2,1,0))
       if (j == 1) xlim <- c(0, 250) else xlim <- c(0, 40)
       
-      b <- barplot(t(m), beside=F, horiz=T, las=1, xlim=xlim, col=cs, border=0, xaxt="n", xlab="Number of participants", cex.lab=1.2, space=1.5, ylim=c(.75,10.75), cex.names=1.2, main="Aware of ER?")
+      b <- barplot(t(m), beside=F, horiz=T, las=1, xlim=xlim, col=cs, border=0, xaxt="n", xlab="Number of participants", cex.lab=1.2, space=1.5, ylim=c(.75,10.75), cex.names=1.2, main="Are you aware of\nan expert report on 5G?")
       if (j == 1) axis(1, at=seq(0, 250, by=50), cex.axis=1, mgp=c(3,.5,0)) else axis(1, at=seq(0, 50, by=10), cex.axis=1, mgp=c(3,.5,0))
       
       legend("top", pch=15, c("No", "Yes"), col=cs, box.lty=0, horiz=T)
@@ -62,9 +62,9 @@ for (j in 1:3) {
       
       p_bw <- 10
       pc <- "bisque3"
-      if (sel_v == "rep_engaged") p_main <- "How much engaged with ER?"
-      if (sel_v == "rep_informed") p_main <- "How well informed by ER?"
-      if (sel_v == "rep_changed") p_main <- "How much did ER influence opinion?"
+      if (sel_v == "rep_engaged") p_main <- "How much did you engage\nwith the expert report?"
+      if (sel_v == "rep_informed") p_main <- "How well do you feel informed\nby the expert report?"
+      if (sel_v == "rep_changed") p_main <- "How strongly did the expert report\ninfluence your opinion?"
       
       b1 <- beanplot(dat, bw=p_bw, what=c(0,1,0,1), method="jitter", jitter=.1, boxwex=1, ll=.05, beanlinewd=0.5, border=0, xlab="", ylim=c(0,100), col=pc, las=1, cex.axis=.8, cex.lab=.8, horizontal=T, xaxt="n", yaxt="n", type="n", add=T, cutmin=0, cutmax=100, main=p_main)
       

@@ -16,9 +16,9 @@ for (i in 1:3) {
 
   par(mar=c(5,4,1,2))
   
-  if (i == 1) dat <- d$know_cover
-  if (i == 2) dat <- subset(d, coverage == TRUE)$know_cover
-  if (i == 3) dat <- subset(d, coverage == FALSE)$know_cover
+  if (i == 1) dat <- d$know_cover_raw
+  if (i == 2) dat <- subset(d, coverage == TRUE)$know_cover_raw
+  if (i == 3) dat <- subset(d, coverage == FALSE)$know_cover_raw
   
   par(lwd=0.5)
   hist(dat, breaks=50, border="white", col=pcs[i], las=1, main="", xlab="", ylim=c(0,500), xaxt="n")

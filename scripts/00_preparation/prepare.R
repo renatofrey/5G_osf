@@ -32,7 +32,7 @@ for (sel in c("w1", "w2")) {
   r <- subset(r, item != "")
   r$item <- droplevels(r$item)
   
-  # generate a key to anonymze pids
+  # generate a key to anonymize pids
   if (sel == "w1") {
     key <- data.frame(old=p$pid, new=substr(p$sid, 1, 6))
     write.csv(key, file="data/local/key.csv")
@@ -65,6 +65,14 @@ for (sel in c("w1", "w2")) {
   zips <- unique(zip$PLZ)
   p$coverage <- is.element(p$zip, zips)
   
+  # reverse "wrong knowledge" concerning 5G-coverage for participants who do not have coverage
+  r_eval <- subset(r, item == "know_cover")
+  r$item <- gsub("know_cover", "know_cover_raw", r$item)
+  pid_nocov <- subset(p, coverage == F)$pid
+  ind_rev <- which(is.element(r_eval$pid, pid_nocov))
+  r_eval[ind_rev,"rating"] <- 100 - r_eval[ind_rev,"rating"]
+  r <- rbind(r, r_eval)
+  
   # filter ratings that were saved twice (there existed fewer than 10 of these cases)
   n_ratings <- tapply(r$rating, list(r$pid, r$item), length)
   n_ratings[is.na(n_ratings)] <- 0
@@ -93,6 +101,19 @@ for (sel in c("w1", "w2")) {
   # create nice overview dataframe
   d <- cbind(p, wide[match(p$pid, row.names(wide)),])
   d$sex <- droplevels(d$sex)
+  
+  # add some approximations to factors
+  d$sc_dread <- apply(d[,paste("dread", 1:5, sep="")], 1, mean, na.rm=T)
+  d$sc_unkno <- apply(d[,paste("unknown", 1:5, sep="")], 1, mean, na.rm=T)
+  d$sc_kns <- apply(d[,c("know_subj", "know_media")], 1, mean, na.rm=T)
+  d$sc_kno <- apply(d[,c("know_radiat", "know_freq", "know_limits", "know_cover")], 1, mean, na.rm=T)
+  d$sc_progr <- apply(d[,c("riskpref", "openness", "digit")], 1, mean, na.rm=T)
+  d$sc_policy <- apply(d[,c("policy_regul", "policy_resea", "policy_vote", "policy_acc")], 1, mean, na.rm=T)
+  d$sc_bene <- apply(d[,c("bene_pers", "bene_soc", "bene_econ")], 1, mean, na.rm=T)
+  
+  
+  # convert education to ordinal
+  d$education <- as.ordered(d$education)
   
   # remove sensitive data
   rem <- c("id", "sid", "ip", "canton", "zip", "otherrisks", "status", "t1", "t2", "rlcond", "rlrisky", "rlsafe", "rldomain", "rldomain", "rldomainoth")
@@ -168,31 +189,25 @@ for (sel in c("w1", "w2")) {
     d_w2_long <- subset(d_w2_long, cond == "D_control" | letter == "yes")
     print(nrow(d_w2_long))
     r_w2_long <- subset(r, is.element(pid, d_w2_long$pid))
-    
-    # compute differences from w1 to w2 for participants in the longitudinal sample
+ 
+    # # add some info from W1 to longitudinal sample for direct access
+    # d_w2_long$device_w1 = d_w1[pid_ind,'device']
+    # d_w2_long$coverage_w1 = d_w1[pid_ind,'coverage']
+    # d_w2_long$age_w1 = d_w1[pid_ind,'age']
+    # d_w2_long$education_w1 = d_w1[pid_ind,'education']
+    # d_w2_long$occupatation_w1 = d_w1[pid_ind,'occupation']
+       
+    # compute change from w1 to w2 for participants in the longitudinal sample
     var_types <- summary.default(d_w1)
     var_ind <- names(which(var_types[,"Class"] == "-none-" & var_types[,"Mode"] == "numeric"))
+    
+    # & rownames(var_types) != "age" & rownames(var_types) != "education"
+    
+    
     pid_ind <- match(d_w2_long$pid, d_w1$pid)
-    d_w2_long <- data.frame(d_w2_long[,c("pid",
-                                         "language",
-                                         "sex",
-                                         "occupation",
-                                         "smartphone",
-                                         "rep_aware",
-                                         "rep_engaged",
-                                         "rep_informed",
-                                         "rep_changed",
-                                         "letter",
-                                         "cond")],
-                            device_w1 = d_w1[pid_ind,'device'],
-                            device_w2 = d_w2_long[,'device'],
-                            coverage_w1 = d_w1[pid_ind,'coverage'],
-                            coverage_w2 = d_w2_long[,'coverage'],
-                            age_w1 = d_w1[pid_ind,'age'],
-                            age_w2 = d_w2_long[,'age'],
-                            education_w1 = d_w1[pid_ind,'education'],
-                            education_w2 = d_w2_long[,'education'],
-                            d_w2_long[,var_ind] - d_w1[pid_ind,var_ind])
+    d_w2_long_change <- data.frame(d_w2_long[,c("pid",
+                                                "cond")],
+                                   d_w2_long[,var_ind] - d_w1[pid_ind,var_ind])
     
     ind <- match(paste(r_w2_long$pid, r_w2_long$item, sep="_"),
                  paste(r_w1$pid, r_w1$item, sep="_"))
@@ -203,6 +218,7 @@ for (sel in c("w1", "w2")) {
     r_w2_long$diff <- r_w2_long$w2 - r_w2_long$w1
     
     d_w2_long$ext_grp <- d_w1[match(d_w2_long$pid, d_w1$pid), "ext_grp"]
+    d_w2_long_change$ext_grp <- d_w1[match(d_w2_long_change$pid, d_w1$pid), "ext_grp"]
         
   }
   
@@ -211,7 +227,7 @@ for (sel in c("w1", "w2")) {
 library(viridis)
 cols <- viridis(3, begin = .80, end = .2, alpha=.6)
 
-save(d_w1, d_w2_cross, d_w2_long, d_w2_long,
-     r_w1, r_w2_cross, r_w2_long, r_w2_long,
+save(d_w1, d_w2_cross, d_w2_long, d_w2_long_change,
+     r_w1, r_w2_cross, r_w2_long,
      v, v_w2, cols, quants,
      file=paste("data/clean/5g_data.Rdata", sep=""))

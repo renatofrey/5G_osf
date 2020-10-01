@@ -54,12 +54,6 @@ rownames(cormat) <- names_new[match(names_old, row.names(cormat))]
 # define model strings
 m_strings <- list(
   
-prisk = '
-PRISK =~ risk',
-  
-benefits = '
-PBENE =~ pers + soc + econ',
-  
 dread = paste('
 DREAD =~ ', paste(paste("dr", 1:5, sep=""), collapse=" + "), sep=""),
 
@@ -78,6 +72,13 @@ subj~~0*subj',
 
 progress = '
 PROGR =~ rpref + open + digit',
+
+prisk = '
+PRISK =~ risk',
+
+benefits = '
+PBENE =~ pers + soc + econ',
+
 
 policy = '
 POLICY =~ accep + vote + regul + resea'
@@ -128,7 +129,7 @@ for (i in 1:length(m_strings)) {
   plot(s)
 
   L <- LETTERS[i]
-  if (sel == "w1" & i == 6) L <- paste(LETTERS[i], "'", sep="")
+  #if (sel == "w1" & i == 6) L <- paste(LETTERS[i], "'", sep="")
   text(-1,1.25, L, xpd=T)
   text(0, -1.4, info, xpd=T, cex=.7)
   
@@ -150,6 +151,20 @@ fitindices <- round(fitindices, 3)
 rownames(factors) <- rownames(d)
 write.csv(factors, file=paste("data/clean/", sel, "_factors.csv", sep=""))
 
+dev.off()
+
+pdf(paste("output/", sel, "/dist_factors.pdf", sep=""), height=3, width=9)
+par(mfrow=c(2,5), mgp=c(1.5,0.5,0), mar=c(3,4,2,1))
+for (i in 1:ncol(factors)) {
+  if (i <= 6) pc <- cols[1]
+  if (i == 7 | i == 8) pc <- cols[2]
+  if (i == 9) pc <- cols[3]
+  h <- hist(factors[,i], col=pc, border="white", main=colnames(factors)[i], xlim=c(-3,3), breaks=10, las=1, xlab="Factor score", yaxt="n", ylab="", cex.axis=.8) 
+  title(ylab="Frequency", mgp=c(2.5,0,0))
+  
+  ymax <- floor(max(h$counts)/100)*100
+  axis(2, at=seq(0, ymax, length.out=3), las=1)
+}
 dev.off()
 
 

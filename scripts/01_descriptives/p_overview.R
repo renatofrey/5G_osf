@@ -82,6 +82,18 @@ for (sel in c("w1", "w2_cross", "w2_long")) {
   
   # plot correlations of main variables that are part of measurement models
   cormat <- cor(d[,v$mms], use="complete.obs")
+  
+  l <-colnames(cormat)
+  l <- gsub("risk_5g", "risk", l)
+  l <- gsub("policy_acc", "policy_accep", l)
+  l <- gsub("riskpref", "progr_rpref", l)
+  l <- gsub("openness", "progr_open", l)
+  l <- gsub("digit", "progr_digit", l)
+  colnames(cormat) <- l
+  rownames(cormat) <- l
+  ind <- c(9:28, 1:8)
+  cormat <- cormat[ind,ind]
+  
   pdf(paste("output/", sel, "/cor_main.pdf", sep=""))
   corrplot(cormat, method="color", type="lower", diag=T, is.cor=T, mar=c(0,1,2,1), addCoef.col = "black", number.font=1, number.cex=.4, tl.col="red", cl.cex=1, cl.ratio=0.05, xpd=T)
   dev.off()

@@ -23,8 +23,6 @@ for (var in c(vars)) {
     if (s == 1) vals <- d_w1[,var]
     if (s == 2) vals <- d_w2_cross[,var]
     if (s == 3) vals <- d_w2_long[,var]
-    if (s == 3 & var == "age") vals <- d_w2_long[,"age_w2"]
-    if (s == 3 & var == "education") vals <- d_w2_long[,"education_w2"]
     
     if (var == "education") vals <- as.factor(vals)
     

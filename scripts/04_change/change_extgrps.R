@@ -1,15 +1,16 @@
 # This script runs the same analyses as change.R but only for the two extreme groups (i.e., 10th and 90th percentile concerning risk perception in w1)
-# => this is an exploratory analysis: beware of the smaller sample size and regression to the mean!
+
+# ===> This is a highly exploratory analysis, beware of the smaller sample size!
 
 library(beanplot)
 library(rstanarm)
 library(BEST)
 
-do_model <- T
+do_model <- F
 
 load(file="data/clean/5g_data.Rdata")
 
-sel <- "w2_long"
+sel <- "w2_long_change"
 
 d_sel <- get(paste("d_", sel, sep=""))
 v_sel <- c("risk_5g", "bene_pers", "bene_soc", "bene_econ", "policy_acc", "policy_vote", "policy_regul", "policy_resea")
@@ -22,7 +23,7 @@ levels(d_sel$cond) <- gsub("B_pressrel", "Group B:\nPress release", levels(d_sel
 levels(d_sel$cond) <- gsub("C_keypoints", "Group C:\nBullet points", levels(d_sel$cond))
 levels(d_sel$cond) <- gsub("D_control", "Group D:\nControl", levels(d_sel$cond))
 
-pdf(paste("output/", sel, "/fieldexp_extgrp.pdf", sep=""), height=5, width=11)
+pdf(paste("output/", sel, "/change_extrgrp.pdf", sep=""), height=5, width=11)
 par(mfrow=c(2,4), mar=c(3,4.8,2,1), mgp=c(2.5,1.5,0), cex.main=1.5)
 
 p_bw <- 5
@@ -42,28 +43,23 @@ for (i in 1:length(v_sel)) {
   curr <- tapply(d_sel[,v_sel[i]], d_sel$cond, list)
   curr <- rev(curr)
   
+  factors <- read.csv(paste("data/clean/w2_long_change_factors.csv"), row.names=1)
+  pred <- cbind(d_sel[match(rownames(factors), d_sel$pid),], factors)
+  pred$cond <- relevel(pred$cond, ref="Group D:\nControl")
+  
+  predictors <- c("cond")
+  use_dat <- pred[,predictors, drop = F]
+  rem_ind <- which(rowSums(apply(use_dat, c(1,2), is.na)) > 0)
+  if (length(rem_ind) > 0) pred <- pred[-rem_ind,]
+  print(paste("Removed", length(rem_ind), "NAs"))
+  
+  f <- as.formula(paste(v_sel[i], " ~ ", paste(predictors, collapse=" + ")))
+  
+  print(round(tapply(pred[,v_sel[i]], pred$cond, mean), 2))
+  #print(summary(lm(f, data=pred)))
+  
+  lms_file <- "data/local/lms_extrgr.Rdata"
   if (do_model == T) {
-    factors <- read.csv(paste("data/clean/w2_long_factors.csv"), row.names=1)
-    pred <- cbind(d_sel[match(rownames(factors), d_sel$pid),], factors)
-    pred$cond <- relevel(pred$cond, ref="Group D:\nControl")
-    
-    predictors <- c("cond")
-    use_dat <- pred[,predictors, drop = F]
-    rem_ind <- which(rowSums(apply(use_dat, c(1,2), is.na)) > 0)
-    if (length(rem_ind) > 0) pred <- pred[-rem_ind,]
-    print(paste("Removed", length(rem_ind), "NAs"))
-    
-    f <- as.formula(paste(v_sel[i], " ~ ", paste(predictors, collapse=" + ")))
-    
-    print(round(tapply(pred[,v_sel[i]], pred$cond, mean), 2))
-    #print(summary(lm(f, data=pred)))
-    
-    lms_file <- "data/local/lms.Rdata"
-    if (file.exists(lms_file)) {
-      load(lms_file)
-      lm_rstan <- lms[["long"]][[i]]
-      lm_mdiff_rstan <- lms[["cross"]][[i]]
-    } else {
       # estimate diffs as a function of experimental manipulation
       lm_rstan <- stan_lm(
         formula = f,
@@ -87,8 +83,12 @@ for (i in 1:length(v_sel)) {
       )
       lms[["cross"]][[i]] <- lm_mdiff_rstan
       names(lms[["cross"]])[i] <- v_sel[i]
+    } else {
+      load(lms_file)
+      lm_rstan <- lms[["long"]][[i]]
+      lm_mdiff_rstan <- lms[["cross"]][[i]]
     }
-    
+  
     mcmc1 <- as.data.frame(lm_rstan)
     mcmc1 <- cbind(mcmc1[,1, drop=F], mcmc1[,2:4] + mcmc1[,1])
     out1 <- t(round(rbind(mean=apply(mcmc1, 2, mean),
@@ -100,9 +100,8 @@ for (i in 1:length(v_sel)) {
                           apply(mcmc2, 2, HDInterval::hdi)), 2))
     print(out2)
     
-  }
-  
-  
+
+
   
   if (i <= 4) pc <- cols[2] else pc <- cols[3]
   
@@ -126,7 +125,6 @@ for (i in 1:length(v_sel)) {
   }
   
 }
+if (do_model == T) save(lms, file=lms_file)
 
 dev.off()
-
-if (!file.exists(lms_file)) save(lms, file=lms_file)

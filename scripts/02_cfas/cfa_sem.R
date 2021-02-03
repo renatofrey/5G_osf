@@ -1,13 +1,12 @@
-# This script implements the SEMs with PRISK and PBENE as DVs and runs the respective Bayesian model selection
-# => sample needs to be selected ('sel') in cfa_mms.R
+# This script implements the SEMs with PRISK and PBENE as DVs
 
-# load measurement models
-source("scripts/02_cfa_sem/cfa_mms.R")
+### => Script will be sourced from cfa_mms.R and does not run indepenently.
+print("Now running SEM.")
 
 # SEMs
 p_res <- F
 
-pdf(file=paste("output/", sel, "/m_sem.pdf", sep=""), width=8, height=3)
+pdf(file=paste("output/", sel, "/cfa_sem.pdf", sep=""), width=8, height=3)
 
 par(mfrow=c(1,4))
 
@@ -98,7 +97,6 @@ if (!is.na(fitm['bic'])) info <- paste(info, "| BIC =", round(fitm["bic"], 0))
 text(0, -1.275, info, xpd=T, cex=.9)
 text(-1.1,1.25, "B", xpd=T, cex=1.7)
 
-
 str3 <- paste(
   m_strings$progress, '
 PRISK ~ PROGR
@@ -136,10 +134,7 @@ if (!is.na(fitm['bic'])) info <- paste(info, "| BIC =", round(fitm["bic"], 0))
 text(0, -1.275, info, xpd=T, cex=.9)
 text(-1.1,1.25, "C", xpd=T, cex=1.7)
 
-
-
-# panel 4
-str1 <- paste(
+str4 <- paste(
   m_strings$policy,
   '
 POLICY ~ PRISK + PBENE
@@ -147,28 +142,28 @@ PRISK =~ 1*risk
 PBENE =~ pers + soc + econ
 ', sep="")
 
-#cat(str1)
-m1 <- sem(str1, data=d, std.lv=T, estimator=sel_est)
-fact1 <- predict(m1)
+#cat(str4)
+m4 <- sem(str4, data=d, std.lv=T, estimator=sel_est)
+fact4 <- predict(m4)
 
-s1 <- semPaths(m1, layout="tree", rotation=1, whatLabel="std", nCharNodes=6, intercepts=T, thresholds=F, residuals=p_res, exoCov=T, title=F, sizeMan=size1, sizeLat=size2, mar=ms, edge.width=2, edge.label.cex=1.7, groups=g, color=cols, legend=F, DoNotPlot=T)
+s4 <- semPaths(m4, layout="tree", rotation=1, whatLabel="std", nCharNodes=6, intercepts=T, thresholds=F, residuals=p_res, exoCov=T, title=F, sizeMan=size1, sizeLat=size2, mar=ms, edge.width=2, edge.label.cex=1.7, groups=g, color=cols, legend=F, DoNotPlot=T)
 
-s1$graphAttributes$Edges$labels <- gsub("0.", ".", s1$graphAttributes$Edges$labels, fixed=T)
-s1$graphAttributes$Edges$labels <- gsub("1.00", "1", s1$graphAttributes$Edges$labels, fixed=T)
+s4$graphAttributes$Edges$labels <- gsub("0.", ".", s4$graphAttributes$Edges$labels, fixed=T)
+s4$graphAttributes$Edges$labels <- gsub("1.00", "1", s4$graphAttributes$Edges$labels, fixed=T)
 
-s1$graphAttributes$Edges$curve[11] <- 2
+s4$graphAttributes$Edges$curve[11] <- 2
 
 ind <- 5:6
-s1$graphAttributes$Edges$color[ind] <- "black"
-s1$graphAttributes$Edges$label.font[ind] <- 2
+s4$graphAttributes$Edges$color[ind] <- "black"
+s4$graphAttributes$Edges$label.font[ind] <- 2
 
-s1$graphAttributes$Edges$label.cex <- rep(1.7, length(s1$graphAttributes$Edges$labels))
-s1$graphAttributes$Edges$label.cex[ind] <- 2.2
+s4$graphAttributes$Edges$label.cex <- rep(1.7, length(s4$graphAttributes$Edges$labels))
+s4$graphAttributes$Edges$label.cex[ind] <- 2.2
 
-s1$graphAttributes$Nodes$label.cex <- 1.2
+s4$graphAttributes$Nodes$label.cex <- 1.2
 
-plot(s1)
-fitm <- fitmeasures(m1)
+plot(s4)
+fitm <- fitmeasures(m4)
 info <- paste("CFI =", round(fitm["cfi"], 2), 
               "| TLI =", round(fitm["tli"], 2),
               "| RMSEA =", round(fitm["rmsea"], 2), sep=" ")
@@ -177,8 +172,4 @@ text(0, -1.275, info, xpd=T, cex=.9)
 text(-1.1,1.25, "D", xpd=T, cex=1.7)
 
 
-
-
-
- 
 dev.off()

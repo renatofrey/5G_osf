@@ -4,7 +4,10 @@ library(beanplot)
 library(rstanarm)
 library(BEST)
 
-do_model <- T
+
+l0 <- function(x) sub("^(-?)0.", "\\1.", sprintf("%.2f", x))
+
+do_model <- F
 
 load(file="data/clean/5g_data.Rdata")
 
@@ -42,14 +45,14 @@ for (i in 1:length(v_sel)) {
   use_dat <- pred[,predictors, drop = F]
   rem_ind <- which(rowSums(apply(use_dat, c(1,2), is.na)) > 0)
   if (length(rem_ind) > 0) pred <- pred[-rem_ind,]
-  print(paste("Removed", length(rem_ind), "NAs"))
+  cat(paste("\nRemoved", length(rem_ind), "NAs\n"))
   
   f <- as.formula(paste(v_sel[i], " ~ ", paste(predictors, collapse=" + ")))
   
   print(round(tapply(pred[,v_sel[i]], pred$cond, mean, na.rm=T), 2))
   
 
-  if (do_model == F) {
+  if (do_model == T) {
     
     # estimate diffs as a function of experimental manipulation
     lm_rstan <- stan_lm(
@@ -84,17 +87,18 @@ for (i in 1:length(v_sel)) {
   mcmc1 <- cbind(mcmc1[,1, drop=F], mcmc1[,2:4] + mcmc1[,1])
   out1 <- t(round(rbind(mean=apply(mcmc1, 2, mean),
                         apply(mcmc1, 2, HDInterval::hdi)), 2))
-  print(out1)
-  cat("...")
   
-  
+  if (sum((sign(out1[,2]) == sign(out1[,3]))) > 0) {
+    print(out1)
+  }
+  cat("\n")
+  print("Cross-sectional differences")
   mcmc2 <- as.data.frame(lm_mdiff_rstan)[,1:2]
   out2 <- t(round(rbind(mean=apply(mcmc2, 2, mean),
                         apply(mcmc2, 2, HDInterval::hdi)), 2))
   print(out2)
-  
 }
-save(lms, file=lms_file)
+if (do_model == T) save(lms, file=lms_file)
 
 
 
@@ -104,9 +108,11 @@ v_sel <- c("risk_5g", "bene_pers", "bene_soc", "bene_econ", "policy_acc", "polic
 pts <- c("Perceived risk", "Perceived benefit (personal)", "Perceived benefit (society)", "Perceived benefit (economy)", "Acceptability of risk", "Voting intention", "Need for more regulation", "Need for more research")
 
 pdf(paste("output/", sel, "/change.pdf", sep=""), height=5, width=11)
-par(mfrow=c(2,4), mar=c(3,4.8,2,1), mgp=c(2.5,1.5,0), cex.main=1.5)
+par(mfrow=c(2,4), mar=c(3,4.8,2,1), mgp=c(2.5,1.5,0), cex.main=1.3)
 
 for (i in 1:length(v_sel)) {
+  
+  print(v_sel[i])
   
   # get cross-sectional diffs
   r_w1 <- na.omit(d_w1[[v_sel[i]]])
@@ -119,15 +125,31 @@ for (i in 1:length(v_sel)) {
   curr <- tapply(d_sel[,v_sel[i]], d_sel$cond, list)
   curr <- rev(curr)
   
+  # get ICCs
+  diffs <- data.frame(pid=d_w2_long$pid,
+                      cond=d_w2_long$cond,
+                      t1=d_w1[match(d_w2_long$pid, d_w1$pid), v_sel[i]],
+                      t2=d_w2_long[, v_sel[i]])
+  sgroups <- by(diffs, diffs$cond, list)
+  iccs <- lapply(sgroups, function(x) {
+    suppressMessages(ICC(x[,c("t1", "t2")])$results[1,"ICC"])
+  })
+  iccs  <- lapply(iccs, round, 2)
+  cat("ICCs: ")
+  print(cbind(lapply(iccs, round, 2)))
+  
   if (is.element(i, 1:4)) pc <- cols[2]
   if (is.element(i, 5:8)) pc <- cols[3]
   
   plot(1, xlim=c(-100,100), ylim=c(1,4.5), type="n", frame=F, xlab="", ylab="", xaxt="n", yaxt="n")
   abline(v=mdiff, lwd=3, col="blue", lty=1)
-
+  
   b1 <- beanplot(curr, main=pts[i], bw=5, what=c(0,1,0,1), method="jitter", jitter=.1, side="second", boxwex=1, ll=.05, beanlinewd=0.5, border=0, xlab="", ylim=c(-100,100), col="white", las=1, cex.axis=.8, cex.lab=.8, horizontal=T, xaxt="n", yaxt="n", type="n", add=T, cutmin=-100, cutmax=100)
-    
-  b1 <- beanplot(curr, main=pts[i], bw=5, what=c(0,1,0,1), method="jitter", jitter=.1, side="second", boxwex=1, ll=.05, beanlinewd=0.5, border=0, xlab="", ylim=c(-100,100), col=pc, las=1, cex.axis=.8, cex.lab=.8, horizontal=T, xaxt="n", yaxt="n", type="n", add=T, cutmin=-100, cutmax=100)
+  
+  b1 <- beanplot(curr, bw=5, what=c(0,1,0,1), method="jitter", jitter=.1, side="second", boxwex=1, ll=.05, beanlinewd=0.5, border=0, xlab="", ylim=c(-100,100), col=pc, las=1, cex.axis=.8, cex.lab=.8, horizontal=T, xaxt="n", yaxt="n", type="n", add=T, cutmin=-100, cutmax=100)
+  
+  text(x=95, y=4.6, "ICCs:", xpd=T, cex=1.1, adj=1)
+  text(x=rep(95, 4), y=seq(1.25, 4.25, length.out=4), paste(l0(iccs)), cex=1.1, adj=1)
   
   axis(1, at=seq(-100, 100, length.out=5), cex.axis=1, mgp=c(3,.5,0))
   if (i != 6) axis(1, c("Lower", "No change", "Higher"), at=seq(-100, 100, length.out=3), mgp=c(3,1.5,0), cex.axis=1.2)
@@ -136,7 +158,7 @@ for (i in 1:length(v_sel)) {
   if (i == 1 | i == 5) text(x=-170, y=1:4+.25, names(curr),adj=0, cex.axis=1.1, xpd=T)
   
   abline(v=0, lwd=1, col="black", lty=2)
-
+  
   
   mlength <- .1
   for (l in 1:4) {

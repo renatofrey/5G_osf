@@ -1,3 +1,5 @@
+# This script runs the Bayesian Adaptive Sampling, including the screening of the model space, obtaining model-averaged coefficients, as well as getting the BFs for the various predictors.
+
 library(BAS)
 library(gplots)
 
@@ -30,7 +32,7 @@ for (sel in c("w1", "w2_cross", "w2_long_change")) {
     
     sc_cors <- cor(d[,c(ivs_fa, ivs_sc, ivs_pr, "sc_bene", "PBENE")], use="complete.obs")
     assign(paste("sc_cors", sel, sep="_"), sc_cors)
-    if (sel == "w1") print(round(sc_cors[7:nrow(sc_cors),], 2))
+    if (sel == "w1") print(diag(round(sc_cors[7:nrow(sc_cors),], 2))[1:6])
     
     ivs <- c(ivs_fa, ivs_soc)
     

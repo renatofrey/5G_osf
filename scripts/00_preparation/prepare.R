@@ -10,8 +10,6 @@ for (sel in c("w1", "w2")) {
   r <- read.csv(paste("data/raw/", sel, "/ratings.csv", sep=""))
   i <- read.csv(paste("data/raw/", sel, "/items.csv", sep=""))
   
-  if (sel != "w1") p$pid <- as.character(p$pid)
-  
   # filter correct and complete cases
   p <- subset(p, pid >= 100000 & is.element(status, c("done", "referred")))
   pids <- p$pid
@@ -185,9 +183,9 @@ for (sel in c("w1", "w2")) {
     d_w2_cross <- subset(d, retest == "no")
     r_w2_cross <- subset(r, is.element(pid, d_w2_cross$pid))
     d_w2_long <- subset(d, retest == "w2")
-    print(nrow(d_w2_long))
+    print(paste("Longitudinal:", nrow(d_w2_long)))
     d_w2_long <- subset(d_w2_long, cond == "D_control" | letter == "yes")
-    print(nrow(d_w2_long))
+    print(paste("Longtitudinal (control / letter_yes):", nrow(d_w2_long)))
     r_w2_long <- subset(r, is.element(pid, d_w2_long$pid))
  
     # # add some info from W1 to longitudinal sample for direct access
